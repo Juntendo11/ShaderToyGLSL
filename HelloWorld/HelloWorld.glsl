@@ -6,12 +6,12 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     uv.x *= iResolution.x / iResolution.y; // Correct aspect ratio
 
     // Zoom scale
-    float zoom = 1.0 + tan(iTime) * 0.75; // Dynamic zoom (oscillates over time)
+    float zoom = 1.0 + tan(iTime)*tan(iTime) * 0.75; // Dynamic zoom (oscillates over time)
     uv /= zoom; // Apply zoom scaling
 
     // Time for rotation
     float angle = iTime * 0.3; // Slow rotation
-    mat2 rot = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
+    mat2 rot = mat2(cos(angle*1.5), -sin(angle*0.9), sin(angle*0.1), cos(angle));
     uv *= rot; // Apply rotation
 
     // Fractal iteration
@@ -23,11 +23,11 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     
     vec2 p = uv;
     for (int i = 0; i < 10; i++) {
-        p = abs(p) / dot(p, p + 0.25) - 1.5 + sin(iTime); // Keep values bounded
-        red += 0.1 / (dot(p, p) + 0.1);
+        p = abs(p) / dot(p, p + 0.25) - 1.25 + sin(iTime); // Keep values bounded
+        red += 0.1 / (dot(p, p) + 0.2);
     }
     for (int i = 0; i < 10; i++) {
-        p = abs(p) / dot(p, p + 0.3) - 1.5 + cos(iTime); // Keep values bounded
+        p = abs(p) / dot(p, p + 0.3) - 1.0 + cos(iTime); // Keep values bounded
         green += 0.1 / (dot(p, p) + 0.1);
     }
     for (int i = 0; i < 10; i++) {
