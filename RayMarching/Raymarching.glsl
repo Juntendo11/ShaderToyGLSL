@@ -1,34 +1,18 @@
 // Distance to the scene
 
 //Rotation
+//p.xz *= rot2D(angle)
+// y = axis of rotation
+
 mat2 rot2D(float angle){
     float s = sin(angle);
     float c = cos(angle);
     return mat2(c, -s, s, c);
 }
 
-mat3 rot3D(vec3 axis, float angle){
-    axis = normalize(axis);
-    float s = sin(angle);
-    float c = cos(angle);
-    float oc = 1.0 -c;
-    
-    return mat3(
-    oc*axis.x*axis.x+c,
-    oc*axis.x*axis.y-axis.z*s,
-    oc*axis.z*axis.x+axis.y*s,
-    oc*axis.x*axis.y+axis.z*s,
-    oc*axis.y*axis.y+c,
-    
-    oc*axis.y*axis.z-axis.x*s,
-    oc*axis.z*axis.x-axis.y*s,
-    oc*axis.y*axis.z+axis.x*s,
-    oc*axis.z*axis.z+c);
-    
-    //Or 
+vec3 rot3D(vec3 p, vec3 axis, float angle){
     return mix(dot(axis, p) * axis, p, cos(angle))
            + cross(axis, p) * sin(angle);
-    
 }
 
 //Intersection
@@ -60,24 +44,37 @@ float sdBox(vec3 p, vec3 b) {
     return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)),0.0);
 }
 
+
+
 float map(vec3 p) {
     vec3 spherePos = vec3(sin(iTime)*3.0, 0.0, 0.0);
     float sphere = sdSphere(p-spherePos,1.);
     
-    //float box = sdBox(p*4., vec3(0.75)) / 4.;
-    float box = sdBox(p, vec3(0.75));
+    vec3 q = p; //Rotation origin
     
-    float ground = p.y + 0.75;
+    q.y -= iTime * 0.4; //Upwards movement
+    
+    q = fract(q) - 0.5; //Space repetition
+    
+    //q.xy *= rot2D(iTime); //Rotate around Z axis
+    
+    //float box = sdBox(p*4., vec3(0.75)) / 4.; //Scale
+    
+    float box = sdBox(q, vec3(0.1));
+    
+    float ground = p.y + 0.75; //Lower ground by 0.75
     
     return min(ground, smin(sphere, box, 2.0));
 }
 
 
 
-void mainImage( out vec4 fragColor, in vec2 fragCoord )
-{
+void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
     // Normalized pixel coordinates (from 0 to 1)
     vec2 uv = (fragCoord * 2.0 - iResolution.xy) / iResolution.y;
+    
+    //Mouse
+    vec2 m = (iMouse.xy * 2. - iResolution.xy) / iResolution.y;
     
     //Init
     vec3 ro = vec3(0,0,-3); //Ray origin
@@ -85,6 +82,14 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     vec3 col = vec3(0);
     
     float t = 0.0; //Total distance travelled for each ray
+    
+    //Camera control
+    float camerar_sensitivity = 2.0;
+    ro.yz *= rot2D(-m.y * camerar_sensitivity); //Rotate x
+    rd.yz *= rot2D(-m.y * camerar_sensitivity);
+    ro.xz *= rot2D(-m.x * camerar_sensitivity); //Rotate Y
+    rd.xz *= rot2D(-m.x * camerar_sensitivity);
+    
     
     //Ray marching
     for(int i=0; i < 80;i++){
@@ -98,9 +103,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     }
     
     //coloring
-    col = vec3(t * 0.2); //Color based on distance
-    
-    
+    col = vec3(t * 0.05); //Color based on distance　(view distance)
+
     
     // Output to screen
     fragColor = vec4(col, 1.0);
