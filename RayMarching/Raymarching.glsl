@@ -1,8 +1,78 @@
 // Distance to the scene
 
-float map(vec3 p) {
-    return length(p)- 1.0;
+//Rotation
+mat2 rot2D(float angle){
+    float s = sin(angle);
+    float c = cos(angle);
+    return mat2(c, -s, s, c);
 }
+
+mat3 rot3D(vec3 axis, float angle){
+    axis = normalize(axis);
+    float s = sin(angle);
+    float c = cos(angle);
+    float oc = 1.0 -c;
+    
+    return mat3(
+    oc*axis.x*axis.x+c,
+    oc*axis.x*axis.y-axis.z*s,
+    oc*axis.z*axis.x+axis.y*s,
+    oc*axis.x*axis.y+axis.z*s,
+    oc*axis.y*axis.y+c,
+    
+    oc*axis.y*axis.z-axis.x*s,
+    oc*axis.z*axis.x-axis.y*s,
+    oc*axis.y*axis.z+axis.x*s,
+    oc*axis.z*axis.z+c);
+    
+    //Or 
+    return mix(dot(axis, p) * axis, p, cos(angle))
+           + cross(axis, p) * sin(angle);
+    
+}
+
+//Intersection
+float opUnion(float d1, float d2){
+    return min(d1, d2);
+}
+
+float opSubtraction(float d1, float d2){
+    return max(-d1, d2);
+}
+
+float opIntersection(float d1, float d2){
+    return max(d1, d2);
+}
+
+float smin(float a, float b, float k){
+    float h = max(k-abs(a-b), 0.0)/k;
+    return min(a,b) - h*h*h*k*(1.0/6.0);
+}
+
+
+//Primitives
+float sdSphere(vec3 p, float s) {
+    return length(p) - s;
+}
+
+float sdBox(vec3 p, vec3 b) {
+    vec3 q = abs(p) - b;
+    return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)),0.0);
+}
+
+float map(vec3 p) {
+    vec3 spherePos = vec3(sin(iTime)*3.0, 0.0, 0.0);
+    float sphere = sdSphere(p-spherePos,1.);
+    
+    //float box = sdBox(p*4., vec3(0.75)) / 4.;
+    float box = sdBox(p, vec3(0.75));
+    
+    float ground = p.y + 0.75;
+    
+    return min(ground, smin(sphere, box, 2.0));
+}
+
+
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
